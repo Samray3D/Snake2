@@ -39,6 +39,12 @@ namespace Snake
 		std::vector<sf::Text> menuItems;
 		sf::Text titleText;
 
+		int difficultyLevel = 2;
+		float baseSpeed = INITIAL_SPEED;
+		int scoreMultiplier = 6;
+
+		std::vector<sf::Text> difficultyItems;
+		int selectedDifficulty = 2;
 
 		int numAppleEaten = 0;
 
@@ -46,6 +52,14 @@ namespace Snake
 		float pauseTime = 3.f;
 		float pauseTimeLeft = 0.f;
 		int lastDirection = 0;
+
+		bool soundEnable = true;
+		bool musicEnable = true;
+
+		sf::Music backgroundMusic;
+
+		std::vector<sf::Text> settingsItems;
+		int selectedSettingsItem = 0;
 
 		sf::Texture appleTexture;
 		sf::Texture playerRightTexture;
