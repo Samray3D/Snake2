@@ -60,6 +60,8 @@ namespace Snake
 
 		std::vector<sf::Text> settingsItems;
 		int selectedSettingsItem = 0;
+		bool keyPressedLastFrame = false;
+
 
 		sf::Texture appleTexture;
 		sf::Texture playerRightTexture;

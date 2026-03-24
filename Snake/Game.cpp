@@ -106,6 +106,14 @@ namespace Snake
 		
 		UpdateScoreText(game.scoreText, "Score: 0");
 
+		if (game.musicEnable && game.backgroundMusic.getStatus() != sf::Music::Playing)
+		{
+			game.backgroundMusic.play();
+		}
+		else if (!game.musicEnable)
+		{
+			game.backgroundMusic.pause();
+		}
 	}
 
 	void InitGame(Game& game)
@@ -268,6 +276,10 @@ namespace Snake
 		{
 			game.backgroundMusic.setLoop(true);
 			game.backgroundMusic.setVolume(25.f);
+			game.musicEnable = true;
+			game.soundEnable = true;
+			if (game.musicEnable)
+				game.backgroundMusic.play();
 		}
 
 	}
@@ -304,17 +316,22 @@ namespace Snake
 	{
 		if (game.state == GameState::Menu)
 		{
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+				&& !game.keyPressedLastFrame)
 			{
 				game.selectedMenuItem = (game.selectedMenuItem + 1) % static_cast<int>(game.menuItems.size());
-				sf::sleep(sf::milliseconds(150));
+				game.keyPressedLastFrame = true;
+				sf::sleep(sf::milliseconds(120));
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+				&& !game.keyPressedLastFrame)
 			{
 				game.selectedMenuItem = (game.selectedMenuItem - 1 + static_cast<int>(game.menuItems.size())) % static_cast<int>(game.menuItems.size());
-				sf::sleep(sf::milliseconds(150));
+				game.keyPressedLastFrame = true;
+				sf::sleep(sf::milliseconds(120));
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+				&& !game.keyPressedLastFrame)
 			{
 				switch (game.selectedMenuItem)
 				{
@@ -332,33 +349,49 @@ namespace Snake
 					window.close();
 					break;
 				}
+				game.keyPressedLastFrame = true;
 				sf::sleep(sf::milliseconds(200));
+			}
+			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::W) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::S) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+			{
+				game.keyPressedLastFrame = false;
 			}
 			return;
 		}
 
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape) && !game.keyPressedLastFrame)
 		{
 			game.state = GameState::Menu;
 			game.selectedMenuItem = 0;
+			game.keyPressedLastFrame = true;
 			sf::sleep(sf::milliseconds(200));
 			return;
 		}
 
 		if (game.state == GameState::DifficultySelect)
 		{
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+				&& !game.keyPressedLastFrame)
 			{
 				game.selectedDifficulty = (game.selectedDifficulty + 1) % 5;
-				sf::sleep(sf::milliseconds(150));
+				game.keyPressedLastFrame = true;
+				sf::sleep(sf::milliseconds(120));
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+				&& !game.keyPressedLastFrame)
 			{
 				game.selectedDifficulty = (game.selectedDifficulty - 1 + 5) % 5;
-				sf::sleep(sf::milliseconds(150));
+				game.keyPressedLastFrame = true;
+				sf::sleep(sf::milliseconds(120));
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+				&& !game.keyPressedLastFrame)
 			{
 				game.difficultyLevel = game.selectedDifficulty;
 				float speedMultiplier = 1.0f + game.difficultyLevel * 0.4f;
@@ -369,24 +402,38 @@ namespace Snake
 
 				game.state = GameState::Menu;
 				game.selectedMenuItem = 0;
+				game.keyPressedLastFrame = true;
 				sf::sleep(sf::milliseconds(200));
+			}
+			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::W) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::S) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+			{
+				game.keyPressedLastFrame = false;
 			}
 			return;
 		}
 
 		if (game.state == GameState::Settings)
 		{
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+				&& !game.keyPressedLastFrame)
 			{
 				game.selectedSettingsItem = (game.selectedSettingsItem + 1) % 2;
-				sf::sleep(sf::milliseconds(150));
+				game.keyPressedLastFrame = true;
+				sf::sleep(sf::milliseconds(120));
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+				&& !game.keyPressedLastFrame)
 			{
 				game.selectedSettingsItem = (game.selectedSettingsItem - 1 + 2) % 2;
-				sf::sleep(sf::milliseconds(150));
+				game.keyPressedLastFrame = true;
+				sf::sleep(sf::milliseconds(120));
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) && !game.keyPressedLastFrame)
 			{
 				if (game.selectedSettingsItem == 0)
 				{
@@ -395,7 +442,8 @@ namespace Snake
 				else if (game.selectedSettingsItem == 1)
 				{
 					game.musicEnable = !game.musicEnable;
-					if (game.musicEnable && game.state == GameState::Playing)
+
+					if (game.musicEnable)
 					{
 						if (game.backgroundMusic.getStatus() != sf::Music::Playing)
 							game.backgroundMusic.play();
@@ -405,16 +453,29 @@ namespace Snake
 						game.backgroundMusic.pause();
 					}
 				}
+				game.keyPressedLastFrame = true;
 				sf::sleep(sf::milliseconds(150));
+
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape) && !game.keyPressedLastFrame)
 			{
 				game.state = GameState::Menu;
 				game.selectedMenuItem = 3;
+				game.keyPressedLastFrame = true;
 				sf::sleep(sf::milliseconds(150));
 			}
-		}
+			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::W) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::S) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+			{
+				game.keyPressedLastFrame = false;
+			}
+			return;
 
+		}
 		if (game.state == GameState::Playing && !game.blsPaused)
 		{
 
@@ -480,7 +541,8 @@ namespace Snake
 				game.numAppleEaten += game.scoreMultiplier;
 				UpdateScoreText(game.scoreText, "Score: " + std::to_string(game.numAppleEaten));
 				game.apple.sprite.setPosition(game.apple.applePosition.x, game.apple.applePosition.y);
-				game.eatSound.play();
+				if (game.soundEnable)
+					game.eatSound.play();
 
 				ateAppleThisFrame = true;
 
@@ -498,11 +560,12 @@ namespace Snake
 				if (pos.x - PLAYER_SIZE / 2.f < 0.f ||
 					pos.x + PLAYER_SIZE / 2.f > SCREEN_WIDTH ||
 					pos.y - PLAYER_SIZE / 2.f < 0.f ||
-					pos.y - PLAYER_SIZE / 2.f > SCREEN_HEIGHT)
+					pos.y + PLAYER_SIZE / 2.f > SCREEN_HEIGHT)
 				{
 					game.blsPaused = true;
 					game.pauseTimeLeft = 9999.f;
-					game.deathWallSound.play();
+					if (game.soundEnable)
+						game.deathWallSound.play();
 
 					bool added = game.highScoreManager.TryAddScore(game.numAppleEaten);
 					game.isNewHighScore = added;
@@ -513,36 +576,46 @@ namespace Snake
 					game.gameOver.sprite.setColor(sf::Color(255, 255, 255, 0));
 
 					UpdateHighScoreDisplay(game);
+					break;
 				}
-
-
 			}
-
-
-			if (game.state == GameState::GameOver || game.state == GameState::HighScores)
+		}
+		if (game.state == GameState::GameOver || game.state == GameState::HighScores)
+		{
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Space) ||
+				sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+				&& !game.keyPressedLastFrame)
 			{
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) ||
-					sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
-				{
-					game.state = GameState::Playing;
-					game.isNewHighScore = false;
-					RestartGame(game);
-				}
-				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
-				{
-					game.state = GameState::Menu;
-					game.selectedMenuItem = 0;
-				}
-
+				game.state = GameState::Playing;
+				game.isNewHighScore = false;
+				RestartGame(game);
+				game.keyPressedLastFrame = true;
+				sf::sleep(sf::milliseconds(200));
 			}
-
+			else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+				&& !game.keyPressedLastFrame)
+			{
+				game.state = GameState::Menu;
+				game.selectedMenuItem = 0;
+				game.keyPressedLastFrame = true;
+				sf::sleep(sf::milliseconds(200));
+			}
+			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::R) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+			{
+				game.keyPressedLastFrame = false;
+			}
 		}
 	}
+	
 
 	void DrawGame(Game& game, sf::RenderWindow& window)
 	{
 		window.clear();
 		window.draw(game.backgroundSprite);
+
 		if (game.state == GameState::Menu)
 		{
 			window.draw(game.backgroundSprite);
@@ -616,7 +689,7 @@ namespace Snake
 
 				if (enabled)
 				{
-					sf::Text check("?", game.font, 42);
+					sf::Text check("+", game.font, 42);
 					check.setFillColor(sf::Color(100, 255, 100));
 					check.setPosition(cbX + 5.f, cbY - 5.f);
 					window.draw(check);
