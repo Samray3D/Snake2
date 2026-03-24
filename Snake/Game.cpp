@@ -84,6 +84,7 @@ namespace Snake
 	void RestartGame(Game& game)
 	{
 
+		game.keyPressedLastFrame = false;
 		game.blsPaused = false;
 		game.player.playerPosition.x = SCREEN_WIDTH / 2.f;
 		game.player.playerPosition.y = SCREEN_HEIGHT / 2.f;
@@ -153,9 +154,9 @@ namespace Snake
 			std::cerr << "not loaded body_topright.png\n";
 
 		if (!game.font.loadFromFile(RESOURCES_PATH + "Fonts/Pixeboy.ttf"))
-		{
-			std::cerr << "Не удалось загрузить шрифт Pixeboy.ttf";
-		}
+			std::cerr << "not loaded font Pixeboy.ttf";
+		
+		
 		game.highScoreTitleText.setFont(game.font);
 		game.highScoreTitleText.setString("HIGH SCORES");
 		game.highScoreTitleText.setCharacterSize(60);
@@ -281,7 +282,47 @@ namespace Snake
 			if (game.musicEnable)
 				game.backgroundMusic.play();
 		}
+		if (!game.menuClickSoundBuffer.loadFromFile(RESOURCES_PATH + "click.ogg"))
+		{
+			std::cerr << "not loaded sound click.ogg";
+		}
+		else
+		{
+			game.menuClickSound.setBuffer(game.menuClickSoundBuffer);
+			game.menuClickSound.setVolume(70.f);
+		}
 
+		game.pauseTitleText.setFont(game.font);
+		game.pauseTitleText.setString("PAUSE");
+		game.pauseTitleText.setCharacterSize(80);
+		game.pauseTitleText.setFillColor(sf::Color::Yellow);
+		game.pauseTitleText.setStyle(sf::Text::Bold);
+		sf::FloatRect pt = game.pauseTitleText.getLocalBounds();
+		game.pauseTitleText.setOrigin(pt.width / 2.f, pt.height / 2.f);
+		game.pauseTitleText.setPosition(SCREEN_WIDTH / 2.f, 180.f);
+
+		game.pauseContinueText.setFont(game.font);
+		game.pauseContinueText.setString("Continue");
+		game.pauseContinueText.setCharacterSize(48);
+		game.pauseContinueText.setFillColor(sf::Color::White);
+		game.pauseContinueText.setStyle(sf::Text::Bold);
+		sf::FloatRect pc = game.pauseContinueText.getLocalBounds();
+		game.pauseContinueText.setOrigin(pc.width / 2.f, pc.height / 2.f);
+		game.pauseContinueText.setPosition(SCREEN_WIDTH / 2.f, 300.f);
+
+		game.pauseExitText.setFont(game.font);
+		game.pauseExitText.setString("Exit to menu");
+		game.pauseExitText.setCharacterSize(48);
+		game.pauseExitText.setFillColor(sf::Color::White);
+		game.pauseExitText.setStyle(sf::Text::Bold);
+		sf::FloatRect pe = game.pauseExitText.getLocalBounds();
+		game.pauseExitText.setOrigin(pe.width / 2.f, pe.height / 2.f);
+		game.pauseExitText.setPosition(SCREEN_WIDTH / 2.f, 380.f);
+
+		game.isPaused = false;
+		game.isResumeDelayActive = false;
+		game.resumeDelayTime = 2.f;
+		game.selectedPauseItem = 0;
 	}
 
 
@@ -314,43 +355,98 @@ namespace Snake
 
 	void UpdateGame(Game& game, float deltaTime, sf::RenderWindow& window)
 	{
+		sf::Event event;
+		while (window.pollEvent(event))
+		{
+			if (event.type == sf::Event::Closed)
+				window.close();
+		}
+		
+		if (game.justSwitchedState)
+		{
+			game.justSwitchedState = false;
+			game.keyPressedLastFrame = true;
+		}
+
+		bool anyActionThisFrame = false;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape) && !game.keyPressedLastFrame)
+		{
+			if (game.state == GameState::Playing || game.isPaused || game.isResumeDelayActive || game.state == GameState::GameOver || game.state == GameState::HighScores)
+			{
+				if (game.soundEnable)
+					game.menuClickSound.play();
+				game.state = GameState::Menu;
+				game.selectedMenuItem = 0;
+				game.isPaused = false;
+				game.isResumeDelayActive = false;
+				game.justSwitchedState = true;
+				game.keyPressedLastFrame = true;
+				anyActionThisFrame = true;
+			}
+		}
+		if (game.state == GameState::Playing)
+		{
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::P) && !game.keyPressedLastFrame)
+			{
+				if (game.soundEnable)
+					game.menuClickSound.play();
+				game.isPaused = !game.isPaused;
+				game.isResumeDelayActive = false;
+				game.keyPressedLastFrame = true;
+				anyActionThisFrame = true;
+			}
+		}
+
 		if (game.state == GameState::Menu)
 		{
 			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
 				&& !game.keyPressedLastFrame)
 			{
 				game.selectedMenuItem = (game.selectedMenuItem + 1) % static_cast<int>(game.menuItems.size());
+				if (game.soundEnable)
+					game.menuClickSound.play();
 				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(120));
+				anyActionThisFrame = true;
+
 			}
 			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 				&& !game.keyPressedLastFrame)
 			{
 				game.selectedMenuItem = (game.selectedMenuItem - 1 + static_cast<int>(game.menuItems.size())) % static_cast<int>(game.menuItems.size());
+				if (game.soundEnable)
+					game.menuClickSound.play();
 				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(120));
+				anyActionThisFrame = true;
+
 			}
 			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
 				&& !game.keyPressedLastFrame)
 			{
+				if (game.soundEnable)
+					game.menuClickSound.play();
+				game.keyPressedLastFrame = true;
 				switch (game.selectedMenuItem)
 				{
 				case 0: game.state = GameState::Playing;
 					RestartGame(game);
 					break;
 				case 1: game.state = GameState::DifficultySelect;
+					game.justSwitchedState = true;
 					break;
 				case 2: game.state = GameState::HighScores;
 					UpdateHighScoreDisplay(game);
+					game.justSwitchedState = true;
 					break;
 				case 3: game.state = GameState::Settings;
+					game.selectedSettingsItem = 0;
+					game.justSwitchedState = true;
 					break;
 				case 4:
 					window.close();
 					break;
 				}
-				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(200));
+				anyActionThisFrame = true;
+
 			}
 			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
 				!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
@@ -361,17 +457,6 @@ namespace Snake
 			{
 				game.keyPressedLastFrame = false;
 			}
-			return;
-		}
-
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape) && !game.keyPressedLastFrame)
-		{
-			game.state = GameState::Menu;
-			game.selectedMenuItem = 0;
-			game.keyPressedLastFrame = true;
-			sf::sleep(sf::milliseconds(200));
-			return;
 		}
 
 		if (game.state == GameState::DifficultySelect)
@@ -380,19 +465,26 @@ namespace Snake
 				&& !game.keyPressedLastFrame)
 			{
 				game.selectedDifficulty = (game.selectedDifficulty + 1) % 5;
+				if (game.soundEnable)
+					game.menuClickSound.play();
 				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(120));
+				anyActionThisFrame = true;
 			}
 			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 				&& !game.keyPressedLastFrame)
 			{
 				game.selectedDifficulty = (game.selectedDifficulty - 1 + 5) % 5;
+				if (game.soundEnable)
+					game.menuClickSound.play();
 				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(120));
+				anyActionThisFrame = true;
 			}
 			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
 				&& !game.keyPressedLastFrame)
 			{
+				if (game.soundEnable)
+					game.menuClickSound.play();
+				game.keyPressedLastFrame = true;
 				game.difficultyLevel = game.selectedDifficulty;
 				float speedMultiplier = 1.0f + game.difficultyLevel * 0.4f;
 				game.player.playerSpeed = game.baseSpeed * speedMultiplier;
@@ -402,19 +494,20 @@ namespace Snake
 
 				game.state = GameState::Menu;
 				game.selectedMenuItem = 0;
-				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(200));
+				game.justSwitchedState = true;
+				anyActionThisFrame = true;
 			}
-			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::W) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::S) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape) && !game.keyPressedLastFrame)
 			{
-				game.keyPressedLastFrame = false;
+				if (game.soundEnable)
+					game.menuClickSound.play();
+				game.keyPressedLastFrame = true;
+				game.state = GameState::Menu;
+				game.selectedMenuItem = 1;
+				game.justSwitchedState = true;
+				anyActionThisFrame = true;
 			}
-			return;
+
 		}
 
 		if (game.state == GameState::Settings)
@@ -423,18 +516,24 @@ namespace Snake
 				&& !game.keyPressedLastFrame)
 			{
 				game.selectedSettingsItem = (game.selectedSettingsItem + 1) % 2;
+				if (game.soundEnable)
+					game.menuClickSound.play();
 				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(120));
+				anyActionThisFrame = true;
 			}
 			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 				&& !game.keyPressedLastFrame)
 			{
 				game.selectedSettingsItem = (game.selectedSettingsItem - 1 + 2) % 2;
+				if (game.soundEnable)
+					game.menuClickSound.play();
 				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(120));
+				anyActionThisFrame = true;
 			}
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) && !game.keyPressedLastFrame)
 			{
+				if (game.soundEnable)
+					game.menuClickSound.play();
 				if (game.selectedSettingsItem == 0)
 				{
 					game.soundEnable = !game.soundEnable;
@@ -454,31 +553,77 @@ namespace Snake
 					}
 				}
 				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(150));
+				anyActionThisFrame = true;
 
 			}
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape) && !game.keyPressedLastFrame)
 			{
+
+				if (game.soundEnable)
+					game.menuClickSound.play();
+				game.keyPressedLastFrame = true;
 				game.state = GameState::Menu;
 				game.selectedMenuItem = 3;
-				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(150));
+				game.justSwitchedState = true;
+				anyActionThisFrame = true;
 			}
-			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::W) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::S) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
-			{
-				game.keyPressedLastFrame = false;
-			}
-			return;
 
 		}
-		if (game.state == GameState::Playing && !game.blsPaused)
-		{
 
+		if (game.isPaused)
+		{
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+				&& !game.keyPressedLastFrame)
+			{
+				game.selectedPauseItem = (game.selectedPauseItem + 1) % 2;
+				if (game.soundEnable)
+					game.menuClickSound.play();
+				game.keyPressedLastFrame = true;
+				anyActionThisFrame = true;
+			}
+			if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+				&& !game.keyPressedLastFrame)
+			{
+				game.selectedPauseItem = (game.selectedPauseItem - 1 + 2) % 2;
+				if (game.soundEnable)
+					game.menuClickSound.play();
+				game.keyPressedLastFrame = true;
+				anyActionThisFrame = true;
+			}
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) && !game.keyPressedLastFrame)
+			{
+				if (game.soundEnable)
+					game.menuClickSound.play();
+				game.keyPressedLastFrame = true;
+				if (game.selectedPauseItem == 0)
+				{
+					game.isResumeDelayActive = true;
+					game.resumeDelayLeft = game.resumeDelayTime;
+					game.isPaused = false;
+				}
+				else
+				{
+					game.state = GameState::Menu;
+					game.selectedMenuItem = 0;
+					game.isPaused = false;
+					game.isResumeDelayActive = false;
+					game.justSwitchedState = true;
+				}
+				anyActionThisFrame = true;
+			}
+
+		}
+		if (game.isResumeDelayActive)
+		{
+			game.resumeDelayLeft -= deltaTime;
+			if (game.resumeDelayLeft <= 0.0f)
+			{
+				game.isResumeDelayActive = false;
+			}
+
+		}
+		if (!game.isPaused && !game.isResumeDelayActive && game.state == GameState::Playing)
+		{
 			bool ateAppleThisFrame = false;
 
 			Position2D oldHeadPosition = game.player.playerPosition;
@@ -537,7 +682,7 @@ namespace Snake
 				game.apple.applePosition, APPLE_SIZE / 2.f))
 			{
 				game.apple.applePosition = GetRandomPositionInScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
-				++game.numAppleEaten;
+				game.apple.sprite.setPosition(game.apple.applePosition.x, game.apple.applePosition.y);
 				game.numAppleEaten += game.scoreMultiplier;
 				UpdateScoreText(game.scoreText, "Score: " + std::to_string(game.numAppleEaten));
 				game.apple.sprite.setPosition(game.apple.applePosition.x, game.apple.applePosition.y);
@@ -586,24 +731,37 @@ namespace Snake
 				sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
 				&& !game.keyPressedLastFrame)
 			{
+				game.keyPressedLastFrame = true;
 				game.state = GameState::Playing;
 				game.isNewHighScore = false;
 				RestartGame(game);
-				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(200));
+				anyActionThisFrame = true;
 			}
 			else if ((sf::Keyboard::isKeyPressed(sf::Keyboard::R))
 				&& !game.keyPressedLastFrame)
 			{
+				game.keyPressedLastFrame = true;
 				game.state = GameState::Menu;
 				game.selectedMenuItem = 0;
-				game.keyPressedLastFrame = true;
-				sf::sleep(sf::milliseconds(200));
+				game.justSwitchedState = true;
+				anyActionThisFrame = true;
 			}
+		}
+		if (anyActionThisFrame)
+			game.keyPressedLastFrame = true;
+		else
+		{
 			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::R) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::P) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::W) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::A) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::S) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::D) &&
 				!sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) &&
-				!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::R) &&
+				!sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
 			{
 				game.keyPressedLastFrame = false;
 			}
@@ -739,6 +897,31 @@ namespace Snake
 			DrawSnakeBody(game, window);
 			game.player.playerSprite.setPosition(game.player.playerPosition.x, game.player.playerPosition.y);
 			window.draw(game.player.playerSprite);
+		}
+		if (game.isPaused)
+		{
+			sf::RectangleShape overlay(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
+			overlay.setFillColor(sf::Color(0, 0, 0, 180));
+			window.draw(overlay);
+			window.draw(game.pauseTitleText);
+
+			game.pauseContinueText.setFillColor(game.selectedPauseItem == 0 ? sf::Color(100, 255, 100) : sf::Color::White);
+			game.pauseContinueText.setCharacterSize(game.selectedPauseItem == 0 ? 54 : 48);
+			window.draw(game.pauseContinueText);
+
+			game.pauseExitText.setFillColor(game.selectedPauseItem == 1 ? sf::Color(100, 255, 100) : sf::Color::White);
+			game.pauseExitText.setCharacterSize(game.selectedPauseItem == 1 ? 54 : 48);
+			window.draw(game.pauseExitText);
+		}
+		if (game.isResumeDelayActive)
+		{
+			int secondsLeft = static_cast<int>(game.resumeDelayLeft) + 1;
+			sf::Text countdown(std::to_string(secondsLeft), game.font, 120);
+			countdown.setFillColor(sf::Color::Yellow);
+			sf::FloatRect cb = countdown.getLocalBounds();
+			countdown.setOrigin(cb.width / 2.f, cb.height / 2.f);
+			countdown.setPosition(SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2.f);
+			window.draw(countdown);
 		}
 		else if (game.state == GameState::GameOver)
 		{

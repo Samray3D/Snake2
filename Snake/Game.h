@@ -62,6 +62,17 @@ namespace Snake
 		int selectedSettingsItem = 0;
 		bool keyPressedLastFrame = false;
 
+		bool isPaused = false;
+		bool isResumeDelayActive = false;
+		float resumeDelayTime = 3.0f;
+		float resumeDelayLeft = 0.0f;
+
+		sf::Text pauseTitleText;
+		sf::Text pauseContinueText;
+		sf::Text pauseExitText;
+		int selectedPauseItem = 0;
+		bool justSwitchedState = false;
+
 
 		sf::Texture appleTexture;
 		sf::Texture playerRightTexture;
@@ -90,6 +101,10 @@ namespace Snake
 		sf::Sound deathWallSound;
 		sf::SoundBuffer deathTailSoundBuffer;
 		sf::Sound deathTailSound;
+
+		sf::SoundBuffer menuClickSoundBuffer;
+		sf::Sound menuClickSound;
+		
 
 		sf::Font scoreFont;
 		ScoreText scoreText;
