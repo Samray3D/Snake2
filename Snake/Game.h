@@ -73,6 +73,9 @@ namespace Snake
 		int selectedPauseItem = 0;
 		bool justSwitchedState = false;
 
+		bool isInvincible = false;
+		float invincibleTimeLeft = 0.0f;
+
 
 		sf::Texture appleTexture;
 		sf::Texture playerRightTexture;

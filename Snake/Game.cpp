@@ -65,7 +65,7 @@ namespace Snake
 
 	void DrawSnakeBody(Game& game, sf::RenderWindow& window)
 	{
-		for (size_t i = 0; i < game.bodyPositions.size(); ++i)
+		for (size_t i = 0; i < game.bodyPositions.size() - 1; ++i)
 		{
 			sf::Sprite segmentSprite;
 			const sf::Texture* chosenTexture = GetBodyTextureForSegment(game, i);
@@ -96,10 +96,14 @@ namespace Snake
 
 		game.bodyPositions.clear();
 
-		Snake::Position2D headPos = game.player.playerPosition;
+		Position2D headPos = game.player.playerPosition;
 
-		game.bodyPositions.push_back({ headPos.x - PLAYER_SIZE, headPos.y });
-		game.bodyPositions.push_back({ headPos.x - PLAYER_SIZE * 2, headPos.y });
+		
+		game.bodyPositions.push_front({ headPos.x - PLAYER_SIZE * 1.5f, headPos.y });
+		game.bodyPositions.push_front({ headPos.x - PLAYER_SIZE * 3.0f, headPos.y });
+
+		game.isInvincible = true;
+		game.invincibleTimeLeft = 2.0f;
 
 		game.apple.applePosition = GetRandomPositionInScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
 		game.apple.sprite.setPosition(game.apple.applePosition.x, game.apple.applePosition.y);
@@ -626,7 +630,7 @@ namespace Snake
 		{
 			bool ateAppleThisFrame = false;
 
-			Position2D oldHeadPosition = game.player.playerPosition;
+			Position2D oldHead = game.player.playerPosition;
 
 			int newDirection = static_cast<int>(game.player.playerDirection);
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
@@ -649,6 +653,7 @@ namespace Snake
 			if ((newDirection + 2) % 4 != game.lastDirection)
 			{
 				game.player.playerDirection = static_cast<PlayerDirection>(newDirection);
+				
 				switch (game.player.playerDirection)
 				{
 				case PlayerDirection::Right: game.player.playerSprite.setTexture(game.playerRightTexture); break;
@@ -660,52 +665,93 @@ namespace Snake
 
 			game.lastDirection = static_cast<int>(game.player.playerDirection);
 
+			Position2D newPosHead = oldHead;
+
 			switch (game.player.playerDirection)
 			{
 
-			case PlayerDirection::Right: game.player.playerPosition.x += game.player.playerSpeed * deltaTime;
+			case PlayerDirection::Right: newPosHead.x += game.player.playerSpeed * deltaTime;
 				break;
 
-			case PlayerDirection::Up: game.player.playerPosition.y -= game.player.playerSpeed * deltaTime;
+			case PlayerDirection::Up: newPosHead.y -= game.player.playerSpeed * deltaTime;
 				break;
 
-			case PlayerDirection::Left:	game.player.playerPosition.x -= game.player.playerSpeed * deltaTime;
+			case PlayerDirection::Left:	newPosHead.x -= game.player.playerSpeed * deltaTime;
 				break;
 
-			case PlayerDirection::Down:	game.player.playerPosition.y += game.player.playerSpeed * deltaTime;
+			case PlayerDirection::Down:	newPosHead.y += game.player.playerSpeed * deltaTime;
 				break;
-
 
 			}
 
-			if (isCirclesCollide(game.player.playerPosition, PLAYER_SIZE / 2.f,
+			if (isCirclesCollide(newPosHead, PLAYER_SIZE / 2.f,
 				game.apple.applePosition, APPLE_SIZE / 2.f))
 			{
-				game.apple.applePosition = GetRandomPositionInScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
-				game.apple.sprite.setPosition(game.apple.applePosition.x, game.apple.applePosition.y);
+				ateAppleThisFrame = true;
 				game.numAppleEaten += game.scoreMultiplier;
 				UpdateScoreText(game.scoreText, "Score: " + std::to_string(game.numAppleEaten));
-				game.apple.sprite.setPosition(game.apple.applePosition.x, game.apple.applePosition.y);
 				if (game.soundEnable)
 					game.eatSound.play();
-
-				ateAppleThisFrame = true;
-
+				game.apple.applePosition = GetRandomPositionInScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
+				game.apple.sprite.setPosition(game.apple.applePosition.x, game.apple.applePosition.y);
+								
 			}
 
-			game.bodyPositions.push_front(game.player.playerPosition);
+			game.player.playerPosition = newPosHead;
 
+			if (game.isInvincible)
+			{
+				game.invincibleTimeLeft -= deltaTime;
+				if (game.invincibleTimeLeft <= 0.0f)
+					game.isInvincible = false;
+			}
+
+			game.bodyPositions.push_front(oldHead);
+	
 			if (!ateAppleThisFrame && !game.bodyPositions.empty())
 			{
 				game.bodyPositions.pop_back();
 			}
+			
+			
 
-			for (const auto& pos : game.bodyPositions)
+			
+			if (newPosHead.x - PLAYER_SIZE / 2.f < 0.f ||
+				newPosHead.x + PLAYER_SIZE / 2.f > SCREEN_WIDTH ||
+				newPosHead.y - PLAYER_SIZE / 2.f < 0.f ||
+				newPosHead.y + PLAYER_SIZE / 2.f > SCREEN_HEIGHT)
+				{
+				game.blsPaused = true;
+				game.pauseTimeLeft = 9999.f;
+				if (game.soundEnable)
+					game.deathWallSound.play();
+
+				bool added = game.highScoreManager.TryAddScore(game.numAppleEaten);
+				game.isNewHighScore = added;
+
+				game.state = GameState::GameOver;
+
+				game.gameOver.fadeClock.restart();
+				game.gameOver.sprite.setColor(sf::Color(255, 255, 255, 0));
+
+				UpdateHighScoreDisplay(game);
+				return;
+				}
+			if (!game.isInvincible)
 			{
-				if (pos.x - PLAYER_SIZE / 2.f < 0.f ||
-					pos.x + PLAYER_SIZE / 2.f > SCREEN_WIDTH ||
-					pos.y - PLAYER_SIZE / 2.f < 0.f ||
-					pos.y + PLAYER_SIZE / 2.f > SCREEN_HEIGHT)
+				bool collisionWithBody = false;
+				for (size_t i = 1; i < game.bodyPositions.size(); ++i)
+				{
+					float dx = newPosHead.x - game.bodyPositions[i].x;
+					float dy = newPosHead.y - game.bodyPositions[i].y;
+					if (dx * dx + dy * dy < PLAYER_SIZE * PLAYER_SIZE * 0.6f)
+					{
+						collisionWithBody = true;
+						break;
+					}
+				}
+
+				if (collisionWithBody)
 				{
 					game.blsPaused = true;
 					game.pauseTimeLeft = 9999.f;
@@ -721,9 +767,10 @@ namespace Snake
 					game.gameOver.sprite.setColor(sf::Color(255, 255, 255, 0));
 
 					UpdateHighScoreDisplay(game);
-					break;
+					return;
 				}
 			}
+					
 		}
 		if (game.state == GameState::GameOver || game.state == GameState::HighScores)
 		{
@@ -944,7 +991,7 @@ namespace Snake
 			}
 			sf::Text pressText;
 			pressText.setFont(game.font);
-			pressText.setString("press SPACE or ENTER to restart or ESC to back in Main menu");
+			pressText.setString("press ENTER to restart or ESC to back in Main menu");
 			pressText.setCharacterSize(32);
 			pressText.setFillColor(sf::Color(200, 200, 255));
 			pressText.setStyle(sf::Text::Bold);
