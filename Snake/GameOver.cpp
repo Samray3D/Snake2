@@ -1,5 +1,6 @@
 #include "GameOver.h"
 #include "Game.h"
+#include "Leaderboard.h"
 
 namespace Snake
 {
@@ -15,13 +16,11 @@ namespace Snake
 		gameOver.fadeActive = false;
 		gameOver.sprite.setColor(sf::Color(255, 255, 255, 0));
 
-
-
 	};
 
 	void DrawGameOver(GameOver& gameOver, sf::RenderWindow& window)
 	{
-		
+
 		float elapsed = gameOver.fadeClock.getElapsedTime().asSeconds();
 		fadeDuration;
 
@@ -32,6 +31,25 @@ namespace Snake
 
 		gameOver.sprite.setPosition(gameOver.position.x, gameOver.position.y);
 		window.draw(gameOver.sprite);
-	}
+	};
+
+	void TriggerGameOver(Game& game)
+	{
+		{
+
+			game.pauseTimeLeft = 9999.f;
+			if (game.soundEnable)
+				game.deathWallSound.play();
+			bool added = game.highScoreManager.TryAddScore(game.numAppleEaten);
+			game.isNewHighScore = added;
+
+			game.state = GameState::GameOver;
+
+			game.gameOver.fadeClock.restart();
+			game.gameOver.sprite.setColor(sf::Color(255, 255, 255, 0));
+
+			UpdateHighScoreDisplay(game);
+		}
+	};
 }
 

@@ -16,4 +16,5 @@ namespace Snake
 	void InitScoreText(ScoreText& scoreText, const Game& game);
 	void DrawScoreText(ScoreText& scoreText, sf::RenderWindow& window);
 	void UpdateScoreText(ScoreText& scoreText, const std::string& message);
+	void UpdateHighScoreDisplay(Game& game);
 }

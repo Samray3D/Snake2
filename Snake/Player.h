@@ -6,6 +6,7 @@
 
 namespace Snake
 {
+	struct Game;
 
 
 	enum class PlayerDirection
@@ -25,5 +26,8 @@ namespace Snake
 	};
 
 	void InitPlayer(Player& player);
+	void DrawSnakeBody(Game& game, sf::RenderWindow& window);
+	const sf::Texture* GetBodyTextureForSegment(const Game& game, size_t index);
+	void UpdateSnakePixelPositions(Game& game);
 }
 

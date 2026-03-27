@@ -6,7 +6,7 @@
 struct HighScoreEntry
 {
 	std::string name;
-	int score;
+	int score = 0;
 };
 
 class HighScoreManager

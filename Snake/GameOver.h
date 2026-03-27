@@ -6,6 +6,8 @@
 
 namespace Snake
 {
+	struct Game;
+
 	struct GameOver
 	{
 		Position2D position;
@@ -16,8 +18,9 @@ namespace Snake
 		
 	};
 
-	struct Game;
+	
 
 	void InitGameOver(GameOver& gameOver, const Game& game);
 	void DrawGameOver(GameOver& gameOver, sf::RenderWindow& window);
+	void TriggerGameOver(Game& game);
 }

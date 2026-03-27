@@ -6,7 +6,7 @@ namespace Snake
 {
 
 	const std::string RESOURCES_PATH = "Resources/";
-	const std::string FONTS_PATH = RESOURCES_PATH + "\\Fonts\\";
+	const std::string FONTS_PATH = RESOURCES_PATH + "Fonts/";
 	const int SCREEN_WIDTH = 800;
 	const int SCREEN_HEIGHT = 600;
 	const float INITIAL_SPEED = 100.f;

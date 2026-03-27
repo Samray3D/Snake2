@@ -32,8 +32,8 @@ namespace Snake
 		GameState state = GameState::Playing;
 
 		sf::Clock gameClock;
-		float lastTime;
-		float moveAccumulator;
+		float lastTime = 0.0f;
+		float moveAccumulator = 0.0f;
 
 		bool isNewHighScore = false;
 		HighScoreManager highScoreManager;
@@ -47,7 +47,7 @@ namespace Snake
 		sf::Text titleText;
 
 		int difficultyLevel = 2;
-		float baseSpeed = INITIAL_SPEED;
+		
 		int scoreMultiplier = 6;
 
 		std::vector<sf::Text> difficultyItems;
@@ -55,10 +55,9 @@ namespace Snake
 
 		int numAppleEaten = 0;
 
-		bool blsPaused = false;
-		float pauseTime = 3.f;
+		
 		float pauseTimeLeft = 0.f;
-		int lastDirection = 0;
+		
 
 		bool soundEnable = true;
 		bool musicEnable = true;
@@ -82,14 +81,14 @@ namespace Snake
 
 		bool isInvincible = false;
 		float invincibleTimeLeft = 0.0f;
-		bool skipCollisionFrame = false;
+		
 
-		float gridSize = PLAYER_SIZE;
+		int gridSize = static_cast<int>(PLAYER_SIZE);
 		float moveInterval = 0.15f;
-		float moveTimer = 0.0f;
+		
 
 		std::deque<sf::Vector2i> bodyGridPositions;
-		PlayerDirection nextDirection;
+		PlayerDirection nextDirection = PlayerDirection::Right;
 
 		sf::Texture appleTexture;
 		sf::Texture playerRightTexture;
