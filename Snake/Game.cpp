@@ -46,18 +46,13 @@ namespace Snake
 
 			if (in_dx == out_dx && in_dy == out_dy)
 			{
-				if (std::abs(in_dx) > 0) return &game.bodyHorizontalTexture;
-				if (std::abs(in_dy) > 0) return &game.bodyVerticalTexture;
+				if (std::abs(in_dx) != 0) return &game.bodyHorizontalTexture;
+				if (std::abs(in_dy) != 0) return &game.bodyVerticalTexture;
 			}
-			if (in_dy < 0 &&  out_dx > 0) return &game.bodyBottomRightTexture;
-			if (in_dy < 0 && out_dx < 0) return &game.bodyBottomLeftTexture;
-			if (in_dy > 0 && out_dx > 0) return &game.bodyTopRightTexture;
-			if (in_dy > 0 && out_dx < 0) return &game.bodyTopLeftTexture;
-
-			if (in_dx > 0 && out_dy > 0) return &game.bodyBottomRightTexture;
-			if (in_dx > 0 && out_dy < 0) return &game.bodyTopRightTexture;
-			if (in_dx < 0 && out_dy > 0) return &game.bodyBottomLeftTexture;
-			if (in_dx < 0 && out_dy < 0) return &game.bodyTopLeftTexture;
+			if ((in_dy < 0 && out_dx < 0) || (in_dx > 0 && out_dy > 0)) return &game.bodyBottomLeftTexture;
+			if ((in_dy < 0 && out_dx > 0) || (in_dx < 0 && out_dy > 0)) return &game.bodyBottomRightTexture;
+			if ((in_dy > 0 && out_dx < 0) || (in_dx > 0 && out_dy < 0)) return &game.bodyTopLeftTexture;
+			if ((in_dy > 0 && out_dx > 0) || (in_dx < 0 && out_dy < 0)) return &game.bodyTopRightTexture;
 
 			return &game.bodyHorizontalTexture;
 
@@ -65,8 +60,9 @@ namespace Snake
 
 	void DrawSnakeBody(Game& game, sf::RenderWindow& window)
 	{
-		for (size_t i = 0; i < game.bodyPositions.size() - 1; ++i)
+		for (size_t i = 0; i < game.bodyPositions.size(); ++i)
 		{
+			if (i == 0) continue;
 			sf::Sprite segmentSprite;
 			const sf::Texture* chosenTexture = GetBodyTextureForSegment(game, i);
 			if (chosenTexture && chosenTexture->getSize().x > 0)
@@ -81,26 +77,106 @@ namespace Snake
 		}
 	}
 
+	void UpdateSnakePixelPositions(Game& game)
+	{
+		if (game.bodyGridPositions.empty())
+			return;
+
+		game.bodyPositions.clear();
+
+		for (const auto& gridPos : game.bodyGridPositions)
+		{
+			float pixelX = gridPos.x * game.gridSize + game.gridSize / 2.f;
+			float pixelY = gridPos.y * game.gridSize + game.gridSize / 2.f;
+			game.bodyPositions.push_back({ pixelX, pixelY });
+		}
+		if (!game.bodyPositions.empty())
+		{
+			const auto& headPos = game.bodyPositions.front();
+			game.player.playerPosition.x = headPos.x;
+			game.player.playerPosition.y = headPos.y;
+			game.player.playerSprite.setPosition(game.player.playerPosition.x, game.player.playerPosition.y);
+		}
+	}
+
+	void UpdateHighScoreDisplay(Game& game)
+	{
+		const auto& scores = game.highScoreManager.GetTopScore();
+		for (size_t i = 0; i < game.highScoreTexts.size(); ++i)
+		{
+			if (i < scores.size())
+			{
+				std::string line = std::to_string(i + 1) + ". " + scores[i].name + " " + std::to_string(scores[i].score);
+				game.highScoreTexts[i].setString(line);
+				if (game.isNewHighScore && i == 0)
+				{
+					game.highScoreTexts[i].setFillColor(sf::Color::Yellow);
+					game.highScoreTexts[i].setStyle(sf::Text::Bold);
+				}
+				else
+				{
+					game.highScoreTexts[i].setFillColor(sf::Color::White);
+					game.highScoreTexts[i].setStyle(sf::Text::Regular);
+				}
+			}
+			else
+			{
+				game.highScoreTexts[i].setString("");
+			}
+		}
+	}
+
+	void TriggerGameOver(Game& game)
+	{
+		{
+			game.blsPaused = true;
+			game.pauseTimeLeft = 9999.f;
+			if (game.soundEnable)
+				game.deathWallSound.play();
+			bool added = game.highScoreManager.TryAddScore(game.numAppleEaten);
+			game.isNewHighScore = added;
+
+			game.state = GameState::GameOver;
+
+			game.gameOver.fadeClock.restart();
+			game.gameOver.sprite.setColor(sf::Color(255, 255, 255, 0));
+
+			UpdateHighScoreDisplay(game);
+		}
+	}
+
 	void RestartGame(Game& game)
 	{
 
 		game.keyPressedLastFrame = false;
 		game.blsPaused = false;
+		game.isResumeDelayActive = false;
+		game.moveAccumulator = 0.0f;
+		game.lastTime = game.gameClock.getElapsedTime().asSeconds();
+
 		game.player.playerPosition.x = SCREEN_WIDTH / 2.f;
 		game.player.playerPosition.y = SCREEN_HEIGHT / 2.f;
+
+		int gridWidth = SCREEN_WIDTH / static_cast<int>(game.gridSize);
+		int gridHeight = SCREEN_HEIGHT / static_cast<int>(game.gridSize);
+
+		int startX = gridWidth / 2;
+		int startY = gridHeight / 2;
+
+		game.bodyGridPositions.clear();
+		game.bodyPositions.clear();
+			
+		game.bodyGridPositions.push_front({ startX, startY});
+		game.bodyGridPositions.push_front({ startX - 1, startY});
+		game.bodyGridPositions.push_front({ startX - 2, startY});
+
 		game.player.playerDirection = PlayerDirection::Right;
+		game.nextDirection = PlayerDirection::Right;
 		game.lastDirection = static_cast<int>(PlayerDirection::Right);
 
+		UpdateSnakePixelPositions(game);
+
 		game.player.playerSprite.setTexture(game.playerRightTexture);
-		game.player.playerSprite.setPosition(game.player.playerPosition.x, game.player.playerPosition.y);
-
-		game.bodyPositions.clear();
-
-		Position2D headPos = game.player.playerPosition;
-
-		
-		game.bodyPositions.push_front({ headPos.x - PLAYER_SIZE * 1.5f, headPos.y });
-		game.bodyPositions.push_front({ headPos.x - PLAYER_SIZE * 3.0f, headPos.y });
 
 		game.isInvincible = true;
 		game.invincibleTimeLeft = 2.0f;
@@ -119,6 +195,7 @@ namespace Snake
 		{
 			game.backgroundMusic.pause();
 		}
+
 	}
 
 	void InitGame(Game& game)
@@ -207,6 +284,10 @@ namespace Snake
 		game.blsPaused = false;
 		game.pauseTime = 8.f;
 		game.pauseTimeLeft = 0.f;
+		
+		game.gameClock.restart();
+		game.lastTime = game.gameClock.getElapsedTime().asSeconds();
+		game.moveAccumulator = 0.0f;
 
 		RestartGame(game);
 
@@ -329,34 +410,6 @@ namespace Snake
 		game.selectedPauseItem = 0;
 	}
 
-
-	void UpdateHighScoreDisplay(Game& game)
-	{
-		const auto& scores = game.highScoreManager.GetTopScore();
-		for (size_t i = 0; i < game.highScoreTexts.size(); ++i)
-		{
-			if (i < scores.size())
-			{
-				std::string line = std::to_string(i + 1) + ". " + scores[i].name + " " + std::to_string(scores[i].score);
-				game.highScoreTexts[i].setString(line);
-				if (game.isNewHighScore && i == 0)
-				{
-					game.highScoreTexts[i].setFillColor(sf::Color::Yellow);
-					game.highScoreTexts[i].setStyle(sf::Text::Bold);
-				}
-				else
-				{
-					game.highScoreTexts[i].setFillColor(sf::Color::White);
-					game.highScoreTexts[i].setStyle(sf::Text::Regular);
-				}
-			}
-			else
-			{
-				game.highScoreTexts[i].setString("");
-			}
-		}
-	}
-
 	void UpdateGame(Game& game, float deltaTime, sf::RenderWindow& window)
 	{
 		sf::Event event;
@@ -365,6 +418,13 @@ namespace Snake
 			if (event.type == sf::Event::Closed)
 				window.close();
 		}
+
+		float currentTime = game.gameClock.getElapsedTime().asSeconds();
+		float dt = currentTime - game.lastTime;
+		game.lastTime = currentTime;
+
+		if (dt > 0.033f)
+			dt = 0.033f;
 		
 		if (game.justSwitchedState)
 		{
@@ -495,6 +555,8 @@ namespace Snake
 
 				int multipliers[5] = { 2, 4, 6, 8, 10 };
 				game.scoreMultiplier = multipliers[game.difficultyLevel];
+
+				game.moveInterval = 0.22f / speedMultiplier;
 
 				game.state = GameState::Menu;
 				game.selectedMenuItem = 0;
@@ -628,32 +690,40 @@ namespace Snake
 		}
 		if (!game.isPaused && !game.isResumeDelayActive && game.state == GameState::Playing)
 		{
-			bool ateAppleThisFrame = false;
+			PlayerDirection inputDir = game.player.playerDirection;
 
-			Position2D oldHead = game.player.playerPosition;
-
-			int newDirection = static_cast<int>(game.player.playerDirection);
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
 			{
-				newDirection = 0;
+				inputDir = PlayerDirection::Right;
 			}
 			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 			{
-				newDirection = 1;
+				inputDir = PlayerDirection::Up;
 			}
 			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
 			{
-				newDirection = 2;
+				inputDir = PlayerDirection::Left;
 			}
 			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
 			{
-				newDirection = 3;
+				inputDir = PlayerDirection::Down;
 			}
 
-			if ((newDirection + 2) % 4 != game.lastDirection)
+			if ((static_cast<int>(inputDir) + 2) % 4 != static_cast<int>(game.player.playerDirection))
 			{
-				game.player.playerDirection = static_cast<PlayerDirection>(newDirection);
-				
+				game.nextDirection = inputDir;
+			}
+			game.moveAccumulator += dt;
+			const int maxMovePerFrame = 2;
+			int movesInThisFrame = 0;
+
+			while (game.moveAccumulator >= game.moveInterval && movesInThisFrame < maxMovePerFrame)
+			{
+				game.moveAccumulator -= game.moveInterval;
+				++movesInThisFrame;
+				game.player.playerDirection = game.nextDirection;
+				game.lastDirection = static_cast<int>(game.player.playerDirection);
+
 				switch (game.player.playerDirection)
 				{
 				case PlayerDirection::Right: game.player.playerSprite.setTexture(game.playerRightTexture); break;
@@ -661,116 +731,86 @@ namespace Snake
 				case PlayerDirection::Left: game.player.playerSprite.setTexture(game.playerLeftTexture); break;
 				case PlayerDirection::Down: game.player.playerSprite.setTexture(game.playerDownTexture); break;
 				}
-			}
 
-			game.lastDirection = static_cast<int>(game.player.playerDirection);
 
-			Position2D newPosHead = oldHead;
+				sf::Vector2i head = game.bodyGridPositions.front();
+				sf::Vector2i newHead = head;
 
-			switch (game.player.playerDirection)
-			{
-
-			case PlayerDirection::Right: newPosHead.x += game.player.playerSpeed * deltaTime;
-				break;
-
-			case PlayerDirection::Up: newPosHead.y -= game.player.playerSpeed * deltaTime;
-				break;
-
-			case PlayerDirection::Left:	newPosHead.x -= game.player.playerSpeed * deltaTime;
-				break;
-
-			case PlayerDirection::Down:	newPosHead.y += game.player.playerSpeed * deltaTime;
-				break;
-
-			}
-
-			if (isCirclesCollide(newPosHead, PLAYER_SIZE / 2.f,
-				game.apple.applePosition, APPLE_SIZE / 2.f))
-			{
-				ateAppleThisFrame = true;
-				game.numAppleEaten += game.scoreMultiplier;
-				UpdateScoreText(game.scoreText, "Score: " + std::to_string(game.numAppleEaten));
-				if (game.soundEnable)
-					game.eatSound.play();
-				game.apple.applePosition = GetRandomPositionInScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
-				game.apple.sprite.setPosition(game.apple.applePosition.x, game.apple.applePosition.y);
-								
-			}
-
-			game.player.playerPosition = newPosHead;
-
-			if (game.isInvincible)
-			{
-				game.invincibleTimeLeft -= deltaTime;
-				if (game.invincibleTimeLeft <= 0.0f)
-					game.isInvincible = false;
-			}
-
-			game.bodyPositions.push_front(oldHead);
-	
-			if (!ateAppleThisFrame && !game.bodyPositions.empty())
-			{
-				game.bodyPositions.pop_back();
-			}
-			
-			
-
-			
-			if (newPosHead.x - PLAYER_SIZE / 2.f < 0.f ||
-				newPosHead.x + PLAYER_SIZE / 2.f > SCREEN_WIDTH ||
-				newPosHead.y - PLAYER_SIZE / 2.f < 0.f ||
-				newPosHead.y + PLAYER_SIZE / 2.f > SCREEN_HEIGHT)
+				switch (game.player.playerDirection)
 				{
-				game.blsPaused = true;
-				game.pauseTimeLeft = 9999.f;
-				if (game.soundEnable)
-					game.deathWallSound.play();
 
-				bool added = game.highScoreManager.TryAddScore(game.numAppleEaten);
-				game.isNewHighScore = added;
+				case PlayerDirection::Right: newHead.x += 1;
+					break;
 
-				game.state = GameState::GameOver;
+				case PlayerDirection::Up: newHead.y -= 1;
+					break;
 
-				game.gameOver.fadeClock.restart();
-				game.gameOver.sprite.setColor(sf::Color(255, 255, 255, 0));
+				case PlayerDirection::Left:	newHead.x -= 1;
+					break;
 
-				UpdateHighScoreDisplay(game);
-				return;
+				case PlayerDirection::Down:	newHead.y += 1;
+					break;
 				}
-			if (!game.isInvincible)
-			{
-				bool collisionWithBody = false;
-				for (size_t i = 1; i < game.bodyPositions.size(); ++i)
+
+
+				if (newHead.x < 0 || newHead.x >= SCREEN_WIDTH / game.gridSize ||
+					newHead.y < 0 || newHead.y >= SCREEN_HEIGHT / game.gridSize)
 				{
-					float dx = newPosHead.x - game.bodyPositions[i].x;
-					float dy = newPosHead.y - game.bodyPositions[i].y;
-					if (dx * dx + dy * dy < PLAYER_SIZE * PLAYER_SIZE * 0.6f)
+					TriggerGameOver(game);
+					return;
+				}
+
+				if (!game.isInvincible)
+				{
+					for (const auto& segment : game.bodyGridPositions)
 					{
-						collisionWithBody = true;
-						break;
+						if (newHead == segment)
+						{
+							TriggerGameOver(game);
+							return;
+						}
 					}
 				}
 
-				if (collisionWithBody)
+				game.bodyGridPositions.push_front(newHead);
+				bool ateApple = false;
+
+				sf::Vector2i appleGrid =
 				{
-					game.blsPaused = true;
-					game.pauseTimeLeft = 9999.f;
+					static_cast<int>(game.apple.applePosition.x / game.gridSize),
+					static_cast<int>(game.apple.applePosition.y / game.gridSize)
+				};
+
+				if (newHead == appleGrid)
+				{
+					ateApple = true;
+					game.numAppleEaten += game.scoreMultiplier;
+					UpdateScoreText(game.scoreText, "Score: " + std::to_string(game.numAppleEaten));
 					if (game.soundEnable)
-						game.deathWallSound.play();
-
-					bool added = game.highScoreManager.TryAddScore(game.numAppleEaten);
-					game.isNewHighScore = added;
-
-					game.state = GameState::GameOver;
-
-					game.gameOver.fadeClock.restart();
-					game.gameOver.sprite.setColor(sf::Color(255, 255, 255, 0));
-
-					UpdateHighScoreDisplay(game);
-					return;
+						game.eatSound.play();
+					do
+					{
+						game.apple.applePosition = GetRandomPositionInScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
+						appleGrid = { static_cast<int>(game.apple.applePosition.x / game.gridSize),
+						static_cast<int>(game.apple.applePosition.y / game.gridSize) };
+					} while (std::find(game.bodyGridPositions.begin(), game.bodyGridPositions.end(), appleGrid) != game.bodyGridPositions.end());
+					game.apple.sprite.setPosition(game.apple.applePosition.x, game.apple.applePosition.y);
 				}
+				if (!ateApple)
+				{
+					game.bodyGridPositions.pop_back();
+				}
+				UpdateSnakePixelPositions(game);
 			}
-					
+		}
+		if (game.isInvincible)
+		{
+			game.invincibleTimeLeft -= dt;
+			if (game.invincibleTimeLeft <= 0.0f)
+			{
+				game.isInvincible = false;
+			}
+
 		}
 		if (game.state == GameState::GameOver || game.state == GameState::HighScores)
 		{

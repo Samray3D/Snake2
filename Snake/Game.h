@@ -23,10 +23,17 @@ namespace Snake
 
 	struct Game
 	{
+		sf::Sprite playerSprite;
+		sf::Vector2f playerPosition;
+		
 		Player player;
 		Apple apple;
 
 		GameState state = GameState::Playing;
+
+		sf::Clock gameClock;
+		float lastTime;
+		float moveAccumulator;
 
 		bool isNewHighScore = false;
 		HighScoreManager highScoreManager;
@@ -75,7 +82,14 @@ namespace Snake
 
 		bool isInvincible = false;
 		float invincibleTimeLeft = 0.0f;
+		bool skipCollisionFrame = false;
 
+		float gridSize = PLAYER_SIZE;
+		float moveInterval = 0.15f;
+		float moveTimer = 0.0f;
+
+		std::deque<sf::Vector2i> bodyGridPositions;
+		PlayerDirection nextDirection;
 
 		sf::Texture appleTexture;
 		sf::Texture playerRightTexture;

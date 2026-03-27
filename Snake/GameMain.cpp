@@ -24,11 +24,6 @@ int main()
 		float deltaTime = currentTime - lastTime;
 		lastTime = currentTime;
 
-		//if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
-		//{
-		//	window.close();
-		//}
-
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
